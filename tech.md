@@ -1,13 +1,9 @@
 ## Architecture
 
 Frontend (PWA)
-   ↓
 Firebase Authentication  →  User Management
-   ↓
 Firebase Firestore        →  Realtime Notes / Metadata
-   ↓
 Firebase Storage           →  File Attachments / Images
-   ↓
 Firebase Hosting           →  Static Deployment (Serverless)
 
 Frontend Stack
