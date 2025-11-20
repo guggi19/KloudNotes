@@ -1,2 +1,3 @@
-region = "region=europe-west1"
-project_id = "KloudNotes"
+region = "europe-west6"
+project_id = "kloudnotes-478113"
+projectname = "KloudNotes"
