@@ -1,4 +1,4 @@
-terraform_gcp_key.json
+infra/terraform_gcp_key.json
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate

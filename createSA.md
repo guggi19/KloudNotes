@@ -3,8 +3,13 @@
 $PROJECT_ID = "kloudnotes-478113"
 $SA_NAME    = "terraform"
 $SA_EMAIL   = "$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+$KEY_FILE   = "terraform_gcp_key.json"
 
 gcloud iam service-accounts create $SA_NAME --display-name "TerraformServiceAccount"
+```
+## Key
+```powershell
+gcloud iam service-accounts keys create $KEY_FILE --iam-account="terraform@kloudnotes-478113.iam.gserviceaccount.com"
 ```
 
 ## Roles
