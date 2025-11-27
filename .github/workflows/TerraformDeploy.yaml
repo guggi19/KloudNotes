@@ -26,8 +26,11 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Terraform Plan
+        run: terraform plan -auto-approve -var-file="variables/vars.tfvars"
+
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var-file="variables/vars.tfvars"
 
   hosting:
     needs: infra
