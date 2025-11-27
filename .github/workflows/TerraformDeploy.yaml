@@ -1,0 +1,54 @@
+name: Deploy Kloud Notes
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Write GCP credentials file
+        run: echo '${{ secrets.GCLOUD_CREDENTIALS }}' > ../terraform_gcp_key.json
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+  hosting:
+    needs: infra
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # - name: Install Firebase CLI
+      #   run: npm install -g firebase-tools
+
+      # - name: Deploy Firebase Hosting
+      #   run: |
+      #     firebase deploy \
+      #       --only hosting \
+      #       --project kloudnotes-478113 \
+      #       --non-interactive \
+      #       --token ${{ secrets.FIREBASE_TOKEN }}
