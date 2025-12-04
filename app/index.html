@@ -36,7 +36,7 @@
         padding: 20px;
       }
 
-      /* Moving Background Blobs */
+      /* Hintergrund Animation */
       .blob {
         position: absolute;
         border-radius: 50%;
@@ -53,16 +53,16 @@
         100% { transform: translate(30px, 50px); }
       }
 
-      /* APP LAYOUT - WIDER & SPLIT */
+      /* APP LAYOUT */
       .app-container {
         display: flex;
         width: 100%;
-        max-width: 1100px; /* Much wider */
+        max-width: 1100px;
         height: 85vh;
         gap: 20px;
       }
 
-      /* GLASS MIXIN STYLE */
+      /* GLASS EFFECT */
       .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: blur(12px);
@@ -73,7 +73,7 @@
         padding: 1.5rem;
       }
 
-      /* SIDEBAR (FOLDERS) */
+      /* SIDEBAR */
       .sidebar {
         width: 280px;
         display: flex;
@@ -113,14 +113,14 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        overflow: hidden; /* Contains scroll */
+        overflow: hidden; 
       }
 
       .header-area { text-align: center; margin-bottom: 1rem; }
       .header-area h1 { font-weight: 600; letter-spacing: 1px; }
       .current-path { font-size: 0.9rem; color: var(--accent-color); opacity: 0.8; }
 
-      /* INPUT AREA */
+      /* INPUTS */
       .input-group {
         display: flex;
         flex-direction: column;
@@ -168,13 +168,12 @@
       .small-btn { padding: 8px 12px; background: rgba(255,255,255,0.2); color: white; }
       .small-btn:hover { background: rgba(255,255,255,0.3); }
 
-      /* NOTES LIST GRID */
+      /* NOTES LIST */
       .notes-scroll-area {
         overflow-y: auto;
         flex: 1;
         padding-right: 5px;
       }
-
       .notes-scroll-area::-webkit-scrollbar { width: 6px; }
       .notes-scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
 
@@ -256,7 +255,8 @@
     </div>
 
     <script type="module">
-      // --- FIREBASE CONFIG ---
+      
+      // ⚠️ ACHTUNG: FÜGE HIER DEINE FIREBASE CONFIG EIN ⚠️
       const firebaseConfig = {
         apiKey: "YOUR_API_KEY_HERE",
         authDomain: "YOUR_AUTH_DOMAIN_HERE",
@@ -269,15 +269,15 @@
         collection,
         addDoc,
         deleteDoc,
-        updateDoc, // IMPORTED
+        updateDoc,
         doc,
         onSnapshot,
-        orderBy,
         query,
-        where,    // IMPORTED
+        where,
         serverTimestamp
       } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+      // Firebase Initialisierung
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
       
@@ -285,11 +285,11 @@
       const foldersCol = collection(db, "folders");
 
       // --- STATE MANAGEMENT ---
-      let currentFolder = "Alle Notizen"; // Default view
-      let editingId = null; // ID of note currently being edited
-      let unsubscribeNotes = null; // To handle switching listeners
+      let currentFolder = "Alle Notizen";
+      let editingId = null;
+      let unsubscribeNotes = null;
 
-      // --- DOM ELEMENTS ---
+      // --- DOM ELEMENTE ---
       const titleInput = document.getElementById("title");
       const contentInput = document.getElementById("content");
       const saveBtn = document.getElementById("saveBtn");
@@ -298,23 +298,228 @@
       const folderListEl = document.getElementById("folderList");
       const currentPathDisplay = document.getElementById("currentPathDisplay");
 
-      // --- 1. FOLDER LOGIC ---
+      // --- 1. ORDNER LOGIK ---
 
-      // Initial Load of Folders
-      onSnapshot(query(foldersCol, orderBy("name")), (snapshot) => {
+      // Ordner laden und überwachen
+      onSnapshot(collection(db, "folders"), (snapshot) => {
         folderListEl.innerHTML = "";
         
-        // Always add "All Notes" option
+        // "Alle Notizen" Standard-Eintrag
         const allLi = createFolderElement("Alle Notizen", "all");
         if(currentFolder === "Alle Notizen") allLi.classList.add("active");
         folderListEl.appendChild(allLi);
 
-        snapshot.forEach(d => {
-            const fData = d.data();
+        // Ordner-Daten sammeln und client-seitig sortieren (alphabetisch)
+        let folders = [];
+        snapshot.forEach(d => folders.push({id: d.id, ...d.data()}));
+        folders.sort((a, b) => a.name.localeCompare(b.name));
+
+        folders.forEach(fData => {
             const li = createFolderElement(fData.name, fData.name);
             if(currentFolder === fData.name) li.classList.add("active");
             
-            // Delete folder button (small trash icon inside folder)
+            // Löschen-Button für Ordner
             const delFolder = document.createElement("span");
             delFolder.innerHTML = "&times;";
-            delFolder.style
+            delFolder.style.marginLeft = "10px";
+            delFolder.style.cursor = "pointer";
+            delFolder.style.opacity = "0.5";
+            
+            delFolder.onclick = async (e) => {
+                e.stopPropagation(); // Verhindert Klick auf den Ordner selbst
+                if(confirm(`Ordner "${fData.name}" wirklich löschen?`)) {
+                    try {
+                        await deleteDoc(doc(db, "folders", fData.id));
+                        // Falls wir im gelöschten Ordner waren, zurück zu "Alle"
+                        if(currentFolder === fData.name) selectFolder("Alle Notizen");
+                    } catch (err) {
+                        alert("Fehler beim Löschen: " + err.message);
+                    }
+                }
+            };
+
+            li.appendChild(delFolder);
+            folderListEl.appendChild(li);
+        });
+      }, (error) => {
+          console.error("Ordner Error:", error);
+          if(error.code === 'permission-denied') {
+              alert("Zugriff verweigert! Bitte prüfe deine Firestore Regeln in der Firebase Console.");
+          }
+      });
+
+      function createFolderElement(displayName, value) {
+        const li = document.createElement("li");
+        li.className = "folder-item";
+        li.textContent = displayName;
+        li.onclick = () => selectFolder(value);
+        return li;
+      }
+
+      function selectFolder(folderName) {
+        currentFolder = folderName;
+        currentPathDisplay.textContent = `Ordner: ${folderName}`;
+        
+        // UI Active State aktualisieren
+        document.querySelectorAll(".folder-item").forEach(el => {
+            el.classList.remove("active");
+            if(el.firstChild.textContent === folderName) el.classList.add("active");
+        });
+
+        resetForm(); // Editieren abbrechen beim Wechsel
+        loadNotes(); // Notizen neu laden
+      }
+
+      // Neuer Ordner Button
+      document.getElementById("addFolderBtn").onclick = async () => {
+        const input = document.getElementById("newFolderInput");
+        const name = input.value.trim();
+        if(!name) return;
+        
+        try {
+            await addDoc(foldersCol, { name: name, createdAt: serverTimestamp() });
+            input.value = "";
+        } catch(e) { 
+            console.error(e);
+            alert("Ordner konnte nicht erstellt werden: " + e.message);
+        }
+      };
+
+      // --- 2. NOTIZEN LOGIK ---
+
+      function loadNotes() {
+        if(unsubscribeNotes) unsubscribeNotes();
+
+        let q;
+        // WICHTIG: Wir filtern nur. Sortierung passiert im Client,
+        // um komplexe Index-Fehler in Firestore zu vermeiden.
+        if (currentFolder === "Alle Notizen") {
+            q = query(notesCol);
+        } else {
+            q = query(notesCol, where("category", "==", currentFolder));
+        }
+
+        unsubscribeNotes = onSnapshot(q, (snapshot) => {
+            notesListEl.innerHTML = "";
+            
+            if (snapshot.empty) {
+                notesListEl.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:20px;">Keine Notizen in "${currentFolder}".</p>`;
+                return;
+            }
+
+            // Daten extrahieren
+            let notesArray = [];
+            snapshot.forEach(d => notesArray.push({ id: d.id, ...d.data() }));
+
+            // Client-Side Sortierung (Neueste zuerst)
+            notesArray.sort((a, b) => {
+                const dateA = a.createdAt ? a.createdAt.seconds : 0;
+                const dateB = b.createdAt ? b.createdAt.seconds : 0;
+                return dateB - dateA;
+            });
+
+            // Rendern
+            notesArray.forEach(note => renderNote(note.id, note));
+
+        }, (error) => {
+            console.error("Notes Error:", error);
+            alert("Fehler beim Laden der Notizen: " + error.message);
+        });
+      }
+
+      function renderNote(id, data) {
+        const div = document.createElement("div");
+        div.className = "note-card";
+        
+        div.innerHTML = `
+          <div class="note-header">
+            <div>
+                <div class="note-title">${data.title}</div>
+                <span class="note-meta">📂 ${data.category || 'Allgemein'}</span>
+            </div>
+            <div class="actions">
+                <button class="action-btn edit-btn" title="Bearbeiten">✏️</button>
+                <button class="action-btn delete-btn" title="Löschen">🗑️</button>
+            </div>
+          </div>
+          <div class="note-body">${data.content}</div>
+        `;
+
+        // Löschen
+        div.querySelector(".delete-btn").onclick = async () => {
+            if(confirm("Notiz wirklich löschen?")) {
+                await deleteDoc(doc(db, "notes", id));
+                if(editingId === id) resetForm();
+            }
+        };
+
+        // Editieren
+        div.querySelector(".edit-btn").onclick = () => enterEditMode(id, data);
+
+        notesListEl.appendChild(div);
+      }
+
+      // --- 3. SPEICHERN & UPDATEN ---
+
+      saveBtn.onclick = async () => {
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+
+        if (!title && !content) return;
+
+        try {
+            if (editingId) {
+                // UPDATE (Kategorie bleibt gleich)
+                await updateDoc(doc(db, "notes", editingId), {
+                    title: title,
+                    content: content,
+                    updatedAt: serverTimestamp()
+                });
+            } else {
+                // NEU ERSTELLEN
+                const categoryToSave = (currentFolder === "Alle Notizen") ? "Allgemein" : currentFolder;
+
+                await addDoc(notesCol, {
+                    title: title,
+                    content: content,
+                    category: categoryToSave, 
+                    createdAt: serverTimestamp(),
+                });
+            }
+            resetForm();
+        } catch (error) {
+            console.error("Fehler beim Speichern:", error);
+            alert("Fehler beim Speichern: " + error.message);
+        }
+      };
+
+      function enterEditMode(id, data) {
+        editingId = id;
+        titleInput.value = data.title;
+        contentInput.value = data.content;
+        
+        saveBtn.textContent = "Aktualisieren";
+        saveBtn.classList.add("updating");
+        cancelEditBtn.style.display = "inline-block";
+        
+        // Scroll nach oben
+        document.querySelector(".main-content").scrollTop = 0;
+      }
+
+      function resetForm() {
+        editingId = null;
+        titleInput.value = "";
+        contentInput.value = "";
+        saveBtn.textContent = "Speichern";
+        saveBtn.classList.remove("updating");
+        cancelEditBtn.style.display = "none";
+      }
+
+      cancelEditBtn.onclick = resetForm;
+
+      // Start der App
+      loadNotes();
+
+    </script>
+  </body>
+</html>
