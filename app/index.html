@@ -23,7 +23,12 @@
 
       body {
         font-family: 'Poppins', sans-serif;
-        background: linear-gradient(45deg, #1a1a2e, #16213e, #4a1c40);
+        /* NEU: Größerer Gradient für die Animation */
+        background: linear-gradient(-45deg, #1a1a2e, #16213e, #4a1c40, #2c1a4a, #1a1a2e);
+        background-size: 400% 400%;
+        /* NEU: Die Animation anwenden */
+        animation: gradientBG 15s ease infinite;
+        
         min-height: 100vh;
         display: flex;
         justify-content: center;
@@ -32,21 +37,30 @@
         padding: 20px;
       }
 
-      /* Hintergrund Animation */
+      /* NEU: Keyframes für den sich bewegenden Hintergrund */
+      @keyframes gradientBG {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+      }
+
+      /* Hintergrund Blobs (Lichtpunkte) */
       .blob {
         position: absolute;
         border-radius: 50%;
         filter: blur(80px);
         z-index: -1;
-        opacity: 0.8;
-        animation: float 10s infinite alternate;
+        opacity: 0.7; /* Etwas transparenter */
       }
-      .blob-1 { top: 5%; left: 10%; width: 300px; height: 300px; background: #ff007f; }
-      .blob-2 { bottom: 5%; right: 10%; width: 350px; height: 350px; background: var(--accent-color); animation-delay: -5s; }
+      /* Animationen etwas verlangsamt und unterschiedlich getimt */
+      .blob-1 { top: 5%; left: 10%; width: 300px; height: 300px; background: #ff007f; animation: float 12s infinite alternate; }
+      .blob-2 { bottom: 5%; right: 10%; width: 350px; height: 350px; background: var(--accent-color); animation: float 15s infinite alternate-reverse; }
 
+      /* NEU: Blobs pulsieren jetzt auch leicht (scale) */
       @keyframes float {
-        0% { transform: translate(0, 0); }
-        100% { transform: translate(30px, 50px); }
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(15px, 25px) scale(1.1); }
+        100% { transform: translate(30px, 50px) scale(1); }
       }
 
       /* APP LAYOUT */
@@ -56,6 +70,7 @@
         max-width: 1100px;
         height: 85vh;
         gap: 20px;
+        z-index: 1; /* Sicherstellen, dass die App über dem Hintergrund liegt */
       }
 
       /* GLASS EFFECT */
@@ -256,7 +271,6 @@
       const foldersCol = collection(db, "folders");
 
       // --- STATE ---
-      // Standardmäßig auf "all" setzen
       let currentFolder = "all"; 
       let editingId = null;
       let unsubscribeNotes = null;
@@ -275,13 +289,10 @@
       onSnapshot(collection(db, "folders"), (snapshot) => {
         folderListEl.innerHTML = "";
         
-        // "Alle Notizen" immer als ersten Eintrag erstellen
-        // WICHTIG: Value ist 'all', Display ist 'Alle Notizen'
         const allLi = createFolderElement("Alle Notizen", "all");
         if(currentFolder === "all") allLi.classList.add("active");
         folderListEl.appendChild(allLi);
 
-        // Andere Ordner laden
         let folders = [];
         snapshot.forEach(d => folders.push({id: d.id, ...d.data()}));
         folders.sort((a, b) => a.name.localeCompare(b.name));
@@ -290,7 +301,6 @@
             const li = createFolderElement(fData.name, fData.name);
             if(currentFolder === fData.name) li.classList.add("active");
             
-            // Löschen Button
             const delFolder = document.createElement("span");
             delFolder.innerHTML = "&times;";
             delFolder.style.marginLeft = "10px";
@@ -321,7 +331,6 @@
         const li = document.createElement("li");
         li.className = "folder-item";
         li.textContent = displayName;
-        // Speichere den echten Wert im Dataset, falls nötig, aber onclick reicht
         li.onclick = () => selectFolder(value); 
         return li;
       }
@@ -329,15 +338,11 @@
       function selectFolder(folderValue) {
         currentFolder = folderValue;
         
-        // Titel oben anpassen
         const displayTitle = (folderValue === 'all') ? "Alle Notizen" : folderValue;
         currentPathDisplay.textContent = `Ordner: ${displayTitle}`;
         
-        // Active State setzen
         document.querySelectorAll(".folder-item").forEach(el => {
             el.classList.remove("active");
-            // Check: Ist es der "Alle Notizen" Button (value='all') oder ein normaler Ordner?
-            // Wir vergleichen den Text nur bei normalen Ordnern, für 'all' nutzen wir Logik
             if(folderValue === 'all' && el.textContent.includes("Alle Notizen")) {
                 el.classList.add("active");
             } else if (el.firstChild.textContent === folderValue) {
@@ -359,19 +364,15 @@
         } catch(e) { alert("Fehler: " + e.message); }
       };
 
-      // --- 2. NOTIZEN LOGIK (DER WICHTIGE FIX) ---
+      // --- 2. NOTIZEN LOGIK ---
 
       function loadNotes() {
         if(unsubscribeNotes) unsubscribeNotes();
 
         let q;
-        
-        // HIER IST DER FIX:
-        // Wenn "all" ausgewählt ist, lade einfach ALLES (kein 'where' filter)
         if (currentFolder === "all") {
             q = query(notesCol); 
         } else {
-            // Sonst filtere nach der spezifischen Kategorie
             q = query(notesCol, where("category", "==", currentFolder));
         }
 
@@ -387,7 +388,6 @@
             let notesArray = [];
             snapshot.forEach(d => notesArray.push({ id: d.id, ...d.data() }));
 
-            // Sortierung im Browser (Neueste zuerst)
             notesArray.sort((a, b) => {
                 const dateA = a.createdAt ? a.createdAt.seconds : 0;
                 const dateB = b.createdAt ? b.createdAt.seconds : 0;
@@ -441,18 +441,13 @@
 
         try {
             if (editingId) {
-                // Update
                 await updateDoc(doc(db, "notes", editingId), {
                     title: title,
                     content: content,
                     updatedAt: serverTimestamp()
                 });
             } else {
-                // Neu erstellen
-                // Wenn wir in "Alle Notizen" sind, speichern wir unter "Allgemein"
-                // Ansonsten im aktuellen Ordner
                 const categoryToSave = (currentFolder === "all") ? "Allgemein" : currentFolder;
-
                 await addDoc(notesCol, {
                     title: title,
                     content: content,
