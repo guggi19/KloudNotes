@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kloud Notes MVP</title>
+    <title>Kloud Notes Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
@@ -15,6 +15,8 @@
         --text-color: #ffffff;
         --accent-color: #00d4ff;
         --danger-color: #ff4757;
+        --warning-color: #ffa502;
+        --active-bg: rgba(0, 212, 255, 0.2);
       }
 
       * {
@@ -30,8 +32,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        overflow-x: hidden;
         color: var(--text-color);
+        padding: 20px;
       }
 
       /* Moving Background Blobs */
@@ -43,47 +45,88 @@
         opacity: 0.8;
         animation: float 10s infinite alternate;
       }
-
-      .blob-1 { top: 10%; left: 20%; width: 300px; height: 300px; background: #ff007f; animation-delay: 0s; }
-      .blob-2 { bottom: 10%; right: 20%; width: 350px; height: 350px; background: var(--accent-color); animation-delay: -5s; }
+      .blob-1 { top: 5%; left: 10%; width: 300px; height: 300px; background: #ff007f; }
+      .blob-2 { bottom: 5%; right: 10%; width: 350px; height: 350px; background: var(--accent-color); animation-delay: -5s; }
 
       @keyframes float {
-        0% { transform: translate(0, 0) rotate(0deg); }
-        100% { transform: translate(30px, 50px) rotate(20deg); }
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(30px, 50px); }
       }
 
-      /* Main Glass Card */
-      .glass-container {
-        width: 90%;
-        max-width: 500px;
+      /* APP LAYOUT - WIDER & SPLIT */
+      .app-container {
+        display: flex;
+        width: 100%;
+        max-width: 1100px; /* Much wider */
+        height: 85vh;
+        gap: 20px;
+      }
+
+      /* GLASS MIXIN STYLE */
+      .glass-panel {
         background: var(--glass-bg);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid var(--glass-border);
         box-shadow: var(--glass-shadow);
         border-radius: 20px;
-        padding: 2rem;
+        padding: 1.5rem;
+      }
+
+      /* SIDEBAR (FOLDERS) */
+      .sidebar {
+        width: 280px;
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        flex-shrink: 0;
       }
 
-      h1 {
-        font-weight: 600;
-        text-align: center;
-        margin-bottom: 0.5rem;
-        letter-spacing: 1px;
-        text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      .sidebar h2 { font-size: 1.2rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px; }
+
+      .folder-list {
+        list-style: none;
+        overflow-y: auto;
+        flex: 1;
       }
 
-      h2 {
-        font-size: 1.2rem;
-        margin-top: 1.5rem;
-        border-bottom: 1px solid var(--glass-border);
-        padding-bottom: 0.5rem;
+      .folder-item {
+        padding: 10px;
+        margin-bottom: 5px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
-      /* Inputs */
+      .folder-item:hover { background: rgba(255,255,255,0.1); }
+      .folder-item.active { background: var(--active-bg); border-left: 3px solid var(--accent-color); }
+      
+      .new-folder-group { display: flex; gap: 5px; margin-top: auto; }
+      .new-folder-group input { padding: 8px; border-radius: 6px; }
+
+      /* MAIN CONTENT */
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow: hidden; /* Contains scroll */
+      }
+
+      .header-area { text-align: center; margin-bottom: 1rem; }
+      .header-area h1 { font-weight: 600; letter-spacing: 1px; }
+      .current-path { font-size: 0.9rem; color: var(--accent-color); opacity: 0.8; }
+
+      /* INPUT AREA */
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
       input, textarea {
         width: 100%;
         background: var(--input-bg);
@@ -97,87 +140,77 @@
         transition: all 0.3s ease;
       }
 
-      input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, 0.6); }
-      input:focus, textarea:focus { background: rgba(255, 255, 255, 0.25); box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
-      textarea { resize: vertical; min-height: 100px; }
+      input:focus, textarea:focus { background: rgba(255, 255, 255, 0.25); }
+      textarea { resize: none; height: 120px; }
 
-      /* Main Save Button */
+      /* BUTTONS */
+      button {
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.2s;
+      }
+      button:active { transform: scale(0.96); }
+
       #saveBtn {
         background: linear-gradient(135deg, var(--accent-color) 0%, #005bea 100%);
         color: white;
-        border: none;
         padding: 12px;
-        border-radius: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
         text-transform: uppercase;
         letter-spacing: 1px;
+        width: 100%;
+      }
+      #saveBtn.updating {
+        background: linear-gradient(135deg, var(--warning-color) 0%, #ff7f50 100%);
       }
 
-      #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4); }
-      #saveBtn:active { transform: scale(0.98); }
+      .small-btn { padding: 8px 12px; background: rgba(255,255,255,0.2); color: white; }
+      .small-btn:hover { background: rgba(255,255,255,0.3); }
 
-      /* Notes List */
-      ul {
-        list-style: none;
-        max-height: 300px;
+      /* NOTES LIST GRID */
+      .notes-scroll-area {
         overflow-y: auto;
+        flex: 1;
         padding-right: 5px;
       }
 
-      ul::-webkit-scrollbar { width: 6px; }
-      ul::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+      .notes-scroll-area::-webkit-scrollbar { width: 6px; }
+      .notes-scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
 
-      li {
+      .note-card {
         background: rgba(0, 0, 0, 0.2);
-        padding: 12px;
-        margin-bottom: 10px;
-        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 10px;
         border-left: 4px solid var(--accent-color);
-        font-size: 0.95rem;
-        line-height: 1.4;
-        animation: fadeIn 0.5s ease;
-        
-        /* Flexbox for Delete Button layout */
+        animation: fadeIn 0.4s ease;
+        position: relative;
+      }
+
+      .note-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 10px;
+        margin-bottom: 8px;
       }
 
-      .note-content {
-        flex: 1;
-        word-break: break-word;
+      .note-title { font-size: 1.15rem; font-weight: 600; color: var(--accent-color); }
+      .note-meta { font-size: 0.75rem; color: rgba(255,255,255,0.5); display: block; margin-bottom: 5px;}
+      .note-body { white-space: pre-wrap; line-height: 1.5; color: rgba(255,255,255,0.9); }
+
+      .actions { display: flex; gap: 10px; }
+      .action-btn { background: transparent; color: rgba(255,255,255,0.5); font-size: 1.1rem; padding: 2px; }
+      .action-btn:hover { transform: scale(1.1); }
+      .edit-btn:hover { color: var(--warning-color); }
+      .delete-btn:hover { color: var(--danger-color); }
+
+      @media (max-width: 768px) {
+        .app-container { flex-direction: column; height: auto; }
+        .sidebar { width: 100%; height: 200px; }
       }
 
-      li strong {
-        display: block;
-        font-size: 1.1em;
-        margin-bottom: 4px;
-        color: var(--accent-color);
-      }
-
-      /* Delete Button Styles */
-      .delete-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255, 255, 255, 0.4);
-        cursor: pointer;
-        font-size: 1.1rem;
-        padding: 0 5px;
-        transition: color 0.3s ease;
-      }
-
-      .delete-btn:hover {
-        color: var(--danger-color);
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
   </head>
   <body>
@@ -185,20 +218,45 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <div class="glass-container">
-      <h1> Kloud Notes</h1>
-
-      <input id="title" placeholder="Titel der Notiz" />
-      <textarea id="content" placeholder="Schreibe deine Gedanken hier auf..."></textarea>
+    <div class="app-container">
       
-      <button id="saveBtn">Speichern</button>
+      <aside class="sidebar glass-panel">
+        <h2>📂 Ordner</h2>
+        <ul id="folderList" class="folder-list">
+          </ul>
+        
+        <div class="new-folder-group">
+          <input id="newFolderInput" placeholder="Neuer Ordner..." />
+          <button id="addFolderBtn" class="small-btn">+</button>
+        </div>
+      </aside>
 
-      <h2>Gespeicherte Notizen</h2>
-      <ul id="notesList"></ul>
+      <main class="main-content glass-panel">
+        <div class="header-area">
+          <h1>Kloud Notes</h1>
+          <span id="currentPathDisplay" class="current-path">Ordner: Alle Notizen</span>
+        </div>
+
+        <div class="input-group">
+          <input id="title" placeholder="Titel der Notiz" />
+          <textarea id="content" placeholder="Schreibe deine Gedanken hier auf..."></textarea>
+          <button id="saveBtn">Speichern</button>
+          <button id="cancelEditBtn" style="display:none; background: transparent; color: #ccc; font-size: 0.8rem; margin-top: -5px;">Abbrechen</button>
+        </div>
+
+        <h2 style="margin-top: 1rem; font-size: 1rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">
+          Deine Notizen
+        </h2>
+        
+        <div class="notes-scroll-area">
+          <div id="notesList"></div>
+        </div>
+      </main>
+
     </div>
 
     <script type="module">
-      //  WICHTIG: Füge hier deine Firebase Config ein
+      // --- FIREBASE CONFIG ---
       const firebaseConfig = {
         apiKey: "YOUR_API_KEY_HERE",
         authDomain: "YOUR_AUTH_DOMAIN_HERE",
@@ -210,77 +268,53 @@
         getFirestore,
         collection,
         addDoc,
-        deleteDoc, // Imported deleteDoc
-        doc,       // Imported doc to reference specific files
+        deleteDoc,
+        updateDoc, // IMPORTED
+        doc,
         onSnapshot,
         orderBy,
         query,
+        where,    // IMPORTED
         serverTimestamp
       } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
+      
       const notesCol = collection(db, "notes");
+      const foldersCol = collection(db, "folders");
 
-      // SAVE FUNCTION
-      document.getElementById("saveBtn").onclick = async () => {
-        const titleInput = document.getElementById("title");
-        const contentInput = document.getElementById("content");
+      // --- STATE MANAGEMENT ---
+      let currentFolder = "Alle Notizen"; // Default view
+      let editingId = null; // ID of note currently being edited
+      let unsubscribeNotes = null; // To handle switching listeners
 
-        if (titleInput.value.trim() === "" && contentInput.value.trim() === "") return;
+      // --- DOM ELEMENTS ---
+      const titleInput = document.getElementById("title");
+      const contentInput = document.getElementById("content");
+      const saveBtn = document.getElementById("saveBtn");
+      const cancelEditBtn = document.getElementById("cancelEditBtn");
+      const notesListEl = document.getElementById("notesList");
+      const folderListEl = document.getElementById("folderList");
+      const currentPathDisplay = document.getElementById("currentPathDisplay");
 
-        try {
-            await addDoc(notesCol, {
-            title: titleInput.value,
-            content: contentInput.value,
-            createdAt: serverTimestamp(),
-            });
+      // --- 1. FOLDER LOGIC ---
+
+      // Initial Load of Folders
+      onSnapshot(query(foldersCol, orderBy("name")), (snapshot) => {
+        folderListEl.innerHTML = "";
+        
+        // Always add "All Notes" option
+        const allLi = createFolderElement("Alle Notizen", "all");
+        if(currentFolder === "Alle Notizen") allLi.classList.add("active");
+        folderListEl.appendChild(allLi);
+
+        snapshot.forEach(d => {
+            const fData = d.data();
+            const li = createFolderElement(fData.name, fData.name);
+            if(currentFolder === fData.name) li.classList.add("active");
             
-            titleInput.value = "";
-            contentInput.value = "";
-        } catch (error) {
-            console.error("Error adding document: ", error);
-        }
-      };
-
-      const notesList = document.getElementById("notesList");
-      const q = query(notesCol, orderBy("createdAt", "desc"));
-
-      // LOAD & RENDER FUNCTION
-      onSnapshot(q, (snapshot) => {
-        notesList.innerHTML = "";
-        snapshot.forEach((d) => {
-          const data = d.data();
-          const noteId = d.id; // We need this ID to delete the note
-
-          const li = document.createElement("li");
-
-          // Create a container for the text so it sits left of the button
-          const textDiv = document.createElement("div");
-          textDiv.className = "note-content";
-          textDiv.innerHTML = `<strong>${data.title}</strong>${data.content}`;
-
-          // Create the Delete Button
-          const deleteBtn = document.createElement("button");
-          deleteBtn.textContent = "🗑️";
-          deleteBtn.className = "delete-btn";
-          deleteBtn.title = "Notiz löschen";
-          
-          // Attach Delete Event
-          deleteBtn.onclick = async () => {
-            const confirmDelete = confirm("Möchtest du diese Notiz wirklich löschen?");
-            if (confirmDelete) {
-                await deleteDoc(doc(db, "notes", noteId));
-            }
-          };
-
-          // Append everything to the list item
-          li.appendChild(textDiv);
-          li.appendChild(deleteBtn);
-          
-          notesList.appendChild(li);
-        });
-      });
-    </script>
-  </body>
-</html>
+            // Delete folder button (small trash icon inside folder)
+            const delFolder = document.createElement("span");
+            delFolder.innerHTML = "&times;";
+            delFolder.style
