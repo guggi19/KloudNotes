@@ -30,7 +30,7 @@ jobs:
         run: terraform plan -var-file="variables/vars.tfvars"
 
       - name: Terraform Apply
-        run: terraform apply -var-file="variables/vars.tfvars"
+        run: terraform apply -var-file="variables/vars.tfvars" -auto-approve
 
   hosting:
     needs: infra
